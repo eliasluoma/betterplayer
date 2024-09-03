@@ -102,7 +102,9 @@ bool _remoteCommandsInitialized = false;
 
     if (showNotification){
         [self setRemoteCommandsNotificationActive];
-        [self setupRemoteCommands: player, skipForwardTimeInMilliseconds, skipBackwardTimeInMilliseconds];
+        [self setupRemoteCommands:player
+            skipForwardTimeInMilliseconds:skipForwardTimeInMilliseconds
+            skipBackwardTimeInMilliseconds:skipBackwardTimeInMilliseconds];
         [self setupRemoteCommandNotification: player, title, author, imageUrl];
         [self setupUpdateListener: player, title, author, imageUrl];
     }
