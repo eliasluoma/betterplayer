@@ -122,7 +122,9 @@ bool _remoteCommandsInitialized = false;
 }
 
 
-- (void) setupRemoteCommands:(BetterPlayer*)player, skipForwardTimeInMilliseconds, skipBackwardTimeInMilliseconds {
+- (void)setupRemoteCommands:(BetterPlayer*)player
+    skipForwardTimeInMilliseconds:(int64_t)skipForwardTimeInMilliseconds
+    skipBackwardTimeInMilliseconds:(int64_t)skipBackwardTimeInMilliseconds {
     if (_remoteCommandsInitialized){
         return;
     }
