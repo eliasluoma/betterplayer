@@ -143,20 +143,27 @@ bool _remoteCommandsInitialized = false;
     commandCenter.skipForwardCommand.preferredIntervals = @[@(skipForwardTimeInMilliseconds/1000)];
     commandCenter.skipBackwardCommand.preferredIntervals = @[@(skipBackwardTimeInMilliseconds/1000)];
 
-    [commandCenter.togglePlayPauseCommand addTargetWithHandler: ^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent * _Nonnull event) {
-        if (_notificationPlayer != [NSNull null]){
-            if (_notificationPlayer.isPlaying){
-                _notificationPlayer.eventSink(@{@"event" : @"play"});
-            } else {
-                _notificationPlayer.eventSink(@{@"event" : @"pause"});
-            }
+    [commandCenter.skipForwardCommand addTargetWithHandler:^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent * _Nonnull event) {
+        if (_notificationPlayer != [NSNull null]) {
+            int64_t currentPosition = MAX(0, [_notificationPlayer position]);
+            int64_t millis = MIN(currentPosition + skipForwardTimeInMilliseconds, 
+                               [_notificationPlayer duration]);
+            _notificationPlayer.eventSink(@{
+                @"event": @"seek",
+                @"position": @(millis)
+            });
         }
         return MPRemoteCommandHandlerStatusSuccess;
     }];
 
-    [commandCenter.playCommand addTargetWithHandler: ^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent * _Nonnull event) {
-        if (_notificationPlayer != [NSNull null]){
-            _notificationPlayer.eventSink(@{@"event" : @"play"});
+    [commandCenter.skipBackwardCommand addTargetWithHandler:^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent * _Nonnull event) {
+        if (_notificationPlayer != [NSNull null]) {
+            int64_t currentPosition = MAX(0, [_notificationPlayer position]);
+            int64_t millis = MAX(0, currentPosition - skipBackwardTimeInMilliseconds);
+            _notificationPlayer.eventSink(@{
+                @"event": @"seek",
+                @"position": @(millis)
+            });
         }
         return MPRemoteCommandHandlerStatusSuccess;
     }];
@@ -200,8 +207,8 @@ bool _remoteCommandsInitialized = false;
 }
 
 - (void) setupRemoteCommandNotification:(BetterPlayer*)player, NSString* title, NSString* author , NSString* imageUrl{
-    float positionInSeconds = player.position /1000;
-    float durationInSeconds = player.duration/ 1000;
+    float positionInSeconds = MAX(0, player.position / 1000.0);
+    float durationInSeconds = MAX(0, player.duration / 1000.0);
 
 
     NSMutableDictionary * nowPlayingInfoDict = [@{MPMediaItemPropertyArtist: author,

@@ -505,17 +505,53 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (int64_t)duration {
-    CMTime time;
-    if (@available(iOS 13, *)) {
-        time =  [[_player currentItem] duration];
-    } else {
-        time =  [[[_player currentItem] asset] duration];
+    AVPlayerItem* playerItem = [_player currentItem];
+    
+    // First try getting duration from asset
+    CMTime assetDuration = [[playerItem asset] duration];
+    if (!CMTIME_IS_INDEFINITE(assetDuration)) {
+        NSLog(@"Duration from asset: %f seconds", CMTimeGetSeconds(assetDuration));
+        return [BetterPlayerTimeUtils FLTCMTimeToMillis:assetDuration];
     }
-    if (!CMTIME_IS_INVALID(_player.currentItem.forwardPlaybackEndTime)) {
-        time = [[_player currentItem] forwardPlaybackEndTime];
+    
+    // If asset duration is indefinite, try seekable ranges
+    NSArray *seekableRanges = [playerItem seekableTimeRanges];
+    if (seekableRanges.count > 0) {
+        CMTimeRange lastRange = [[seekableRanges lastObject] CMTimeRangeValue];
+        CMTime endTime = CMTimeAdd(lastRange.start, lastRange.duration);
+        NSLog(@"Duration from seekable range: %f seconds", CMTimeGetSeconds(endTime));
+        return [BetterPlayerTimeUtils FLTCMTimeToMillis:endTime];
     }
+    
+    // If all else fails, try player item duration
+    CMTime itemDuration = [playerItem duration];
+    if (!CMTIME_IS_INDEFINITE(itemDuration)) {
+        NSLog(@"Duration from player item: %f seconds", CMTimeGetSeconds(itemDuration));
+        return [BetterPlayerTimeUtils FLTCMTimeToMillis:itemDuration];
+    }
+    
+    NSLog(@"Could not determine duration");
+    return 0;
+}
 
-    return [BetterPlayerTimeUtils FLTCMTimeToMillis:(time)];
+- (BOOL)hasValidDuration {
+    AVPlayerItem* playerItem = [_player currentItem];
+    
+    // Check asset duration
+    CMTime assetDuration = [[playerItem asset] duration];
+    if (!CMTIME_IS_INDEFINITE(assetDuration) && CMTimeGetSeconds(assetDuration) > 0) {
+        return YES;
+    }
+    
+    // Check seekable ranges
+    NSArray *seekableRanges = [playerItem seekableTimeRanges];
+    if (seekableRanges.count > 0) {
+        return YES;
+    }
+    
+    // Check player item duration
+    CMTime itemDuration = [playerItem duration];
+    return !CMTIME_IS_INDEFINITE(itemDuration) && CMTimeGetSeconds(itemDuration) > 0;
 }
 
 - (void)seekTo:(int)location {
